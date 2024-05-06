@@ -2,9 +2,9 @@ import os
 import cv2
 import numpy as np
 
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtGui import QFont, QImage, QPixmap, QIcon
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QVideoFrame
+from PyQt5.QtCore import Qt, QUrl, pyqtSignal
+from PyQt5.QtGui import QFont, QImage, QPixmap
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QLabel, QFrame, QWidget, QTableWidget, QPushButton, QFileDialog, QTableWidgetItem, \
     QHeaderView, QAbstractItemView, QStackedWidget, QVBoxLayout
 from ultralytics import YOLO
@@ -13,11 +13,21 @@ from video_surface import myVideoSurface
 
 
 class Upload_Detector(QWidget):
+
+    # 导出功能的状态信号, 用于更新主窗口状态栏
+    exporting_signal = pyqtSignal()
+    exported_signal = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.path = ''
         self.folder_path = ''
         self.src_type = None
+
+        # 初始化默认文件夹
+        self.resource_folder = ''
+        self.result_folder = ''
+        self.init_sys()
 
         # 选择图片
         self.file_open_button = QPushButton('选择图片', self)
@@ -100,13 +110,13 @@ class Upload_Detector(QWidget):
         # 视频功能按钮
         self.restart_button = QPushButton(self)
         self.restart_button.setGeometry(720, 475, 30, 30)
-        self.restart_button.setStyleSheet('border-image:url(resource/button/restart.jpg);')
+        self.restart_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/restart.jpg);')
         self.restart_button.clicked.connect(self.restart_video)
         self.restart_button.setEnabled(False)
 
         self.pause_button = QPushButton(self)
         self.pause_button.setGeometry(760, 475, 30, 30)
-        self.pause_button.setStyleSheet('border-image:url(resource/button/pause.jpg);')
+        self.pause_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/pause.jpg);')
         self.pause_button.clicked.connect(self.pause_video)
         self.pause_button.setEnabled(False)
 
@@ -127,19 +137,18 @@ class Upload_Detector(QWidget):
         # 导出按钮
         self.export_file_button = QPushButton(self)
         self.export_file_button.setGeometry(807, 10, 20, 20)
-        self.export_file_button.setStyleSheet('border-image:url(resource/button/export.jpg);')
+        self.export_file_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/export.jpg);')
         self.export_file_button.clicked.connect(self.export_file)
 
         self.export_folder_button = QPushButton(self)
         self.export_folder_button.setGeometry(807, 75, 20, 20)
-        self.export_folder_button.setStyleSheet('border-image:url(resource/button/export.jpg);')
+        self.export_folder_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/export.jpg);')
         self.export_folder_button.clicked.connect(self.export_folder)
 
         self.export_video_button = QPushButton(self)
         self.export_video_button.setGeometry(807, 445, 20, 20)
-        self.export_video_button.setStyleSheet('border-image:url(resource/button/export.jpg);')
+        self.export_video_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/export.jpg);')
         self.export_video_button.clicked.connect(self.export_video)
-
 
     def open_file(self):
         self.path, _ = QFileDialog.getOpenFileName(self, '选择图片', '', 'Images (*.png *.jpg)')
@@ -154,7 +163,7 @@ class Upload_Detector(QWidget):
             self.load_files(self.folder_path)
 
     def load_files(self, folder_path):
-        file_names = [i for i in os.listdir(folder_path) if i.endswith('jpg') or i.endswith('png')]
+        file_names = [i for i in os.listdir(folder_path) if i.lower().endswith('jpg') or i.lower().endswith('png')]
         self.file_table.setRowCount(len(file_names))
         for i, file_name in enumerate(file_names):
             item = QTableWidgetItem(file_name)
@@ -261,22 +270,94 @@ class Upload_Detector(QWidget):
         if self.pause is False:
             self.pause = True
             self.video_player.pause()
-            self.pause_button.setStyleSheet('border-image:url(resource/button/start.jpg);')
+            self.pause_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/start.jpg);')
         else:
             self.pause = False
             self.video_player.play()
-            self.pause_button.setStyleSheet('border-image:url(resource/button/pause.jpg);')
+            self.pause_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/pause.jpg);')
 
     def export_file(self):
-        pass
+        if self.src_type == 'pic':
+            self.exporting_signal.emit()
+            res_folder = os.path.join(self.result_folder, 'file')
+            if not os.path.exists(res_folder):
+                os.makedirs(res_folder)
+
+            result = self.model.predict(source=cv2.cvtColor(cv2.imread(self.path), cv2.COLOR_BGR2RGB))
+            annotated_frame = result[0].plot()
+
+            # e.g., ./result/file/00001_annotated.jpg
+            cv2.imwrite(f'{os.path.join(res_folder, os.path.basename(self.path).replace(".jpg", "_annotated.jpg"))}', cv2.cvtColor(annotated_frame, cv2.COLOR_RGB2BGR))
+            self.exported_signal.emit()
 
     def export_folder(self):
-        pass
+        if self.src_type == 'pic' and self.folder_path:
+            self.exporting_signal.emit()
+            """
+                创建与选定文件夹的basename同名并加上 '_annotated' 后缀的文件夹
+                e.g.,选中文件夹的路径(即self.folder_path): E:/.../abnormal-driving-behavior/mydataset/images
+                --> ./result/folder/images_annotated
+            """
+            res_folder = os.path.join(self.result_folder, f'folder/{os.path.basename(self.folder_path)}_annotated')
+            if not os.path.exists(res_folder):
+                os.makedirs(res_folder)
+
+            file_list = os.listdir(self.folder_path)
+            for file in file_list:
+                file_path = os.path.join(self.folder_path, file)
+                result = self.model.predict(source=cv2.cvtColor(cv2.imread(file_path), cv2.COLOR_BGR2RGB))
+                annotated_frame = result[0].plot()
+
+                # e.g., ./result/folder/images_annotated/00001_annotated.jpg
+                cv2.imwrite(f'{os.path.join(res_folder, file.replace(".jpg", "_annotated.jpg"))}',
+                            cv2.cvtColor(annotated_frame, cv2.COLOR_RGB2BGR))
+
+            self.exported_signal.emit()
 
     def export_video(self):
-        pass
+        if self.src_type == 'video':
+            self.exporting_signal.emit()
+            res_folder = os.path.join(self.result_folder, 'video')
+            if not os.path.exists(res_folder):
+                os.makedirs(res_folder)
+
+            cap = cv2.VideoCapture(self.path)   # 由于是cv2读取, 所以导出时间会较长
+
+            # 创建视频编解码器对象和视频编写器对象
+            frame_width = int(cap.get(3))
+            frame_height = int(cap.get(4))
+            if self.path.lower().endswith('.mp4'):
+                print(1)
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                out = cv2.VideoWriter(os.path.join(res_folder, os.path.basename(self.path).replace('.mp4', '_annotate.mp4')), fourcc, 20.0, (frame_width, frame_height))
+                print(2)
+            elif self.path.lower().endswith('.avi'):
+                print(3)
+                fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                out = cv2.VideoWriter(os.path.join(res_folder, os.path.basename(self.path).replace('.avi', '_annotate.avi')), fourcc, 20.0, (frame_width, frame_height))
+                print(4)
+
+            while cap.isOpened():
+                success, frame = cap.read()
+                if success:
+                    result = self.model.predict(source=frame)
+                    annotated_frame = result[0].plot()
+                    out.write(annotated_frame)
+                else:
+                    break
+            cap.release()
+
+            self.exported_signal.emit()
 
     def set_obj_font(self, obj):
         obj.setFont(QFont('SimHei', 16))
 
+    def init_sys(self):
+        self.resource_folder = 'resource'
+        if not os.path.exists(self.resource_folder):
+            os.makedirs(self.resource_folder)
+
+        self.result_folder = 'result'
+        if not os.path.exists(self.result_folder):
+            os.makedirs(self.result_folder)
 

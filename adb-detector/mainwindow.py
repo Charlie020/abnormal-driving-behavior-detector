@@ -1,4 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QStatusBar, QWidget, QLabel
+
 from real_time_detector import RealTime_Detector
 from upload_detector import Upload_Detector
 
@@ -6,8 +9,8 @@ from upload_detector import Upload_Detector
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1100, 750)
-        MainWindow.setMinimumSize(1100, 750)
+        MainWindow.resize(1100, 775)
+        MainWindow.setMinimumSize(1100, 775)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -125,6 +128,8 @@ class Ui_MainWindow(object):
         self.page_1.setObjectName("page_1")
         self.upload_detector = Upload_Detector()
         self.upload_detector.setFixedSize(835, 775)
+        self.upload_detector.exporting_signal.connect(self.exporting_status_bar)
+        self.upload_detector.exported_signal.connect(self.exported_status_bar)
         page_1_layout = QtWidgets.QVBoxLayout(self.page_1)
         page_1_layout.addWidget(self.upload_detector)
         self.stackedWidget.addWidget(self.page_1)
@@ -137,6 +142,11 @@ class Ui_MainWindow(object):
         page_2_layout = QtWidgets.QVBoxLayout(self.page_2)
         page_2_layout.addWidget(self.real_time_detector)
         self.stackedWidget.addWidget(self.page_2)
+
+        # 状态栏
+        self.status_bar = QStatusBar(MainWindow)
+        self.status_bar.setStyleSheet('QStatusBar{color:cyan; alignment:center;}')
+        MainWindow.setStatusBar(self.status_bar)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.retranslateUi(MainWindow)
@@ -151,6 +161,12 @@ class Ui_MainWindow(object):
 
     def show_real_time_detect_page(self):
         self.stackedWidget.setCurrentIndex(2)
+
+    def exporting_status_bar(self):
+        self.status_bar.showMessage('正在导出...')
+
+    def exported_status_bar(self):
+        self.status_bar.showMessage('导出完成', 3000)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

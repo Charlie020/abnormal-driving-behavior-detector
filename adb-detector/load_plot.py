@@ -16,7 +16,7 @@ class PlotWindow(QMainWindow):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setLabel('left', 'Score')
         self.plot_widget.setLabel('bottom', 'Time (s)')
-        self.pkl_path = r'logs/result_curve.pkl'
+        self.pkl_path = r'logs/real-time_detection_curve.pkl'
 
         layout = QVBoxLayout()
         layout.addWidget(self.plot_widget)

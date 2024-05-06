@@ -16,6 +16,12 @@ from ultralytics import YOLO
 class RealTime_Detector(QWidget):
     def __init__(self):
         super().__init__()
+        # 初始化默认文件夹
+        self.logs_folder = ''
+        self.resource_folder = ''
+        self.result_folder = ''
+        self.init_sys()
+
         # 摄像头检测区域
         self.update_frame_timer = QTimer(self)  # 更新图片的计时器
         self.update_log_timer = QTimer(self)   # 更新日志的计时器
@@ -237,7 +243,7 @@ class RealTime_Detector(QWidget):
 
     def alarm(self):
         for _ in range(5):
-            playsound('resource/audio/alarm_80.mp3')
+            playsound(f'{self.resource_folder}/audio/alarm_80.mp3')
         self.isAlarm = False
 
     def set_text(self):
@@ -262,12 +268,9 @@ class RealTime_Detector(QWidget):
         self.log_text.append(f'{QDateTime.currentDateTime().toString("yyyy年MM月dd日 hh:mm:ss")}: {self.get_adb_str(self.adb)}')
 
     def export_log(self):
-        logs_folder = 'logs'
-        if not os.path.exists(logs_folder):
-            os.makedirs(logs_folder)
-        with open(os.path.join(logs_folder, 'result_curve.pkl'), 'wb') as f:  # 保存绘图数据
+        with open(os.path.join(self.logs_folder, 'real-time_detection_curve.pkl'), 'wb') as f:  # 保存绘图数据
             pickle.dump((self.TIME, self.SCORE), f)
-        with open(os.path.join(logs_folder, 'real-time_detection_logs.txt'), 'w', encoding='utf-8') as f:
+        with open(os.path.join(self.logs_folder, 'real-time_detection_logs.txt'), 'w', encoding='utf-8') as f:
             f.write(self.log_text.toPlainText())
 
     def update_plot(self):
@@ -336,4 +339,16 @@ class RealTime_Detector(QWidget):
             self.show_bbox_button.setToolTip('隐藏边界框')
             self.show_bbox_button.setText('r')
 
+    def init_sys(self):
+        self.logs_folder = 'logs'
+        if not os.path.exists(self.logs_folder):
+            os.makedirs(self.logs_folder)
+
+        self.resource_folder = 'resource'
+        if not os.path.exists(self.resource_folder):
+            os.makedirs(self.resource_folder)
+
+        self.result_folder = 'result'
+        if not os.path.exists(self.result_folder):
+            os.makedirs(self.result_folder)
 
