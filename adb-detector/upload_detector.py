@@ -261,6 +261,7 @@ class Upload_Detector(QWidget):
             self.video_player.stop()
             self.video_player.setMedia(QMediaContent())
         self.pause_button.setEnabled(flag)
+        self.pause_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/pause.jpg);')
         self.restart_button.setEnabled(flag)
 
     def restart_video(self):
