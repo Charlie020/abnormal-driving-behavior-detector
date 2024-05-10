@@ -2,7 +2,9 @@
 
 ## 一、项目描述
 1.该项目的界面采用了PyQt5实现，模型检测使用了[YOLOv8](https://github.com/ultralytics/ultralytics)在自制数据集上训练的模型，训练结果在验证集上的PR曲线：
+
 ![image](./assets/PR_curve.png)
+
 
 2.该项目主要实现了以下功能：
 
