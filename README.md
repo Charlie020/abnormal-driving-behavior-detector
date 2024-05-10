@@ -12,7 +12,10 @@
 
 &emsp;&emsp;(2)实时检测页面：调用本地摄像头进行实时检测，具有预警功能，支持生成、导出检测日志和得分曲线。
 
-该系统能够检测的<行为,标签>：<睁眼, eye_open>,<闭眼, eye_close>,<嘴巴, mouth>, <脸, face>, <抽烟, smoke>,<喝水, drink>, <使用手机, phone>。
+
+3.该系统能够检测八种行为：<睁眼, eye_open>,<闭眼, eye_close>,<嘴巴, mouth>, <打哈欠, yawn>, <脸, face>, <抽烟, smoke>,<使用手机, phone>, <喝水, drink>。
+其中闭眼、打哈欠、抽烟、使用手机、喝水这五种行为被视作异常行为。
+
 ## 二、文件结构
 ```commandline
 abnormal-driving-behavior
