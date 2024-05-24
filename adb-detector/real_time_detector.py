@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QLabel, QPushButton, QFrame, QVBoxLayout, QWidget, Q
 import pyqtgraph as pg  # pyqtgraph必须在PyQt5后面import
 from playsound import playsound
 
+from functools import partial
 from ultralytics import YOLO
 
 
@@ -29,7 +30,7 @@ class RealTime_Detector(QWidget):
 
         self.detect_area_label = QLabel('摄像头检测结果显示区域', self)
         self.detect_area_label.setGeometry(5, 0, 200, 20)
-        self.set_obj_font(self.detect_area_label)
+        self.detect_area_label.setFont(QFont("SimHei", 11))
 
         self.img_frame = QFrame(self)
         self.img_frame.setFrameShape(QFrame.Box)
@@ -43,7 +44,7 @@ class RealTime_Detector(QWidget):
         self.fps_label = QLabel(self.image_label)
         self.fps_label.setGeometry(5, 5, 80, 20)
         self.fps_label.setStyleSheet('color: rgb(0, 255, 255); background-color: transparent')
-        self.set_obj_font(self.fps_label)
+        self.fps_label.setFont(QFont("SimHei", 11))
 
         # 模型
         from main import get_yolo_weight
@@ -51,18 +52,26 @@ class RealTime_Detector(QWidget):
 
         # 得分
         self.classes = ['eye_open', 'eye_close', 'mouth', 'yawn', 'face', 'smoke', 'phone', 'drink']
-        self.adb = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}  # 是否有异常动作
-        self.score = 100
-        self.adb_score = {'eye_close': 40, 'yawn': 5, 'smoke': 10, 'phone': 30, 'drink': 15}
+        self.adb_flag = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}        # 是否有异常动作的标志
+        self.adb_weight = {'eye_close': 40, 'yawn': 5, 'smoke': 15, 'phone': 25, 'drink': 20}  # 权重
 
-        self.adb_frame_cnt = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}  # 单位时间内异常动作帧数统计
-        self.frame_threshold = 0.3  # 被判定为异常行为的帧数所占正常帧数的比例阈值
+        self.lamda = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}           # 权重放大系数
+        self.timers = {}
+        for adb in self.adb_flag:
+            self.timers[adb] = QTimer(self)
+            self.timers[adb].timeout.connect(partial(self.update_weight, adb))  # 每个行为设置一个更新各自权重放大系数的计时器
+
+        self.SCORE = 100
+        self.__score = 100
+
+        self.__adb_frame_cnt = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}  # 单位时间内异常动作帧数统计
+        self.__frame_threshold = 0.6  # 被判定为异常行为的帧数所占正常帧数的比例阈值
         self.queue = queue.Queue()  # 帧队列，存有单位时间（1s）内每一帧的异常行为
 
         # 实时检测结果分析
         self.res_label = QLabel('实时检测结果分析', self)
         self.res_label.setGeometry(625, 0, 150, 20)
-        self.set_obj_font(self.res_label)
+        self.res_label.setFont(QFont("SimHei", 11))
 
         self.res_frame = QFrame(self)
         self.res_frame.setFrameShape(QFrame.Box)
@@ -71,16 +80,16 @@ class RealTime_Detector(QWidget):
         self.res_content_label = QLabel(self.res_frame)
         self.res_content_label.setGeometry(10, 10, 180, 105)
         self.res_content_label.setWordWrap(True)
-        self.set_obj_font(self.res_content_label)
+        self.res_content_label.setFont(QFont('SimHei', 9))
         self.res_content_label.setTextInteractionFlags(self.res_content_label.textInteractionFlags() | Qt.TextSelectableByMouse)
 
         # 异常驾驶行为统计次数
         self.cnt_label = QLabel('异常驾驶行为统计与分析', self)
         self.cnt_label.setGeometry(625, 160, 200, 20)
-        self.set_obj_font(self.cnt_label)
+        self.cnt_label.setFont(QFont("SimHei", 11))
 
         self.analyse_label = QLabel(self)
-        self.set_obj_font(self.analyse_label)
+        self.analyse_label.setFont(QFont("SimHei", 10))
         self.analyse_label.setWordWrap(True)
         self.analyse_label.setTextInteractionFlags(self.analyse_label.textInteractionFlags() | Qt.TextSelectableByMouse)
 
@@ -96,14 +105,12 @@ class RealTime_Detector(QWidget):
         self.start_detect_button = QPushButton('开始检测', self)
         self.start_detect_button.clicked.connect(self.start_detect)
         self.start_detect_button.setFixedSize(100, 30)
-        self.start_detect_button.setStyleSheet("background-color: transparent; border: 1px solid black;")
-        self.set_obj_font(self.start_detect_button)
+        self.start_detect_button.setFont(QFont("SimHei", 11))
 
         self.end_detect_button = QPushButton('结束', self)
         self.end_detect_button.clicked.connect(self.end_detect)
         self.end_detect_button.setFixedSize(100, 30)
-        self.end_detect_button.setStyleSheet("background-color: transparent; border: 1px solid black;")
-        self.set_obj_font(self.end_detect_button)
+        self.end_detect_button.setFont(QFont("SimHei", 11))
 
         self.button_frame = QFrame(self)
         self.button_frame.setGeometry(625, 440, 200, 90)
@@ -150,7 +157,7 @@ class RealTime_Detector(QWidget):
         self.plot_widget.setLabel('left', 'Score')
         self.plot_widget.setLabel('bottom', 'Time (s)')
         self.TIME = [0]
-        self.SCORE = [self.score]
+        self.score_data = [self.__score]
 
         # 更新'异常驾驶行为统计与分析'与'实时检测结果分析'模块
         self.isAlarm = False
@@ -176,8 +183,8 @@ class RealTime_Detector(QWidget):
             self.update_plot_timer.start(1000)
             self.plot_widget.clear()
             self.TIME = [0]
-            self.SCORE = [self.score]
-            self.plot_widget.plot(self.TIME, self.SCORE, pen='b', symbol='o', symbolPen='b', symbolBrush='r')
+            self.score_data = [self.__score]
+            self.plot_widget.plot(self.TIME, self.score_data, pen='b', symbol='o', symbolPen='b', symbolBrush='r', symbolSize=5)
 
             self.start_detect_button.setText('正在检测中')
 
@@ -211,29 +218,34 @@ class RealTime_Detector(QWidget):
         if classes is not None:
             for each_idx in classes:     # 根据classes中下标获取对应adb
                 idx = int(each_idx.item())
-                if self.classes[idx] in self.adb:
+                if self.classes[idx] in self.adb_flag:
                     cur_frame_adb.append(self.classes[idx])
 
         self.queue.put(cur_frame_adb)
 
         for adb in cur_frame_adb:
-            self.adb_frame_cnt[adb] += 1
-        while self.queue.qsize() > FPS * 2:  # 动态维护一个长度为FPS * 5的队列，存放一段时间内帧的检测结果
+            self.__adb_frame_cnt[adb] += 1
+        while self.queue.qsize() > FPS * 3:  # 动态维护一个长度为FPS * 3的队列，存放一段时间内帧的检测结果
             head_frame_cnt = self.queue.get()
             for adb in head_frame_cnt:
-                self.adb_frame_cnt[adb] -= 1
+                self.__adb_frame_cnt[adb] -= 1
 
-        for adb, frame in self.adb_frame_cnt.items():
-            if frame / self.queue.qsize() >= self.frame_threshold:  # 如果异常帧所占一段时间内帧的比例超过了threshold
-                if self.adb[adb] == 0:
-                    self.score -= self.adb_score[adb]
-                self.adb[adb] = 1
+        for adb, frame in self.__adb_frame_cnt.items():
+            if frame / self.queue.qsize() >= self.__frame_threshold:  # 如果异常帧所占一段时间内帧的比例超过了threshold
+                if self.adb_flag[adb] == 0:
+                    self.timers[adb].start(3000)
+                self.adb_flag[adb] = 1
             else:
-                if self.adb[adb] == 1:
-                    self.score += self.adb_score[adb]
-                self.adb[adb] = 0
+                if self.adb_flag[adb] == 1:
+                    self.timers[adb].stop()
+                    self.lamda[adb] = 0
+                self.adb_flag[adb] = 0
 
-        if self.score <= 80 and self.isAlarm == False:
+        self.__score = self.SCORE
+        for adb, flag in self.adb_flag.items():
+            self.__score -= (flag + self.lamda[adb]) * self.adb_weight[adb]
+
+        if self.__score <= 75 and self.isAlarm == False:
             self.isAlarm = True
             alarm_thread = threading.Thread(target=self.alarm)
             alarm_thread.daemon = True
@@ -246,37 +258,22 @@ class RealTime_Detector(QWidget):
             playsound(f'{self.resource_folder}/audio/alarm_80.mp3')
         self.isAlarm = False
 
-    def set_text(self):
-        self.analyse_label.setText(f'闭眼: {self.adb["eye_close"]}\n\n'
-                                   f'打哈欠: {self.adb["yawn"]}\n\n'
-                                   f'抽烟: {self.adb["smoke"]}\n\n'
-                                   f'使用手机: {self.adb["phone"]}\n\n'
-                                   f'喝水: {self.adb["drink"]}\n\n'
-                                   f'驾驶行为评分: {self.score}\n\n'
-                                   f'危险驾驶分级: {self.get_level()}\n\n')
-
-        if self.cap.isOpened():
-            self.res_content_label.setText('检测中...\n'
-                                           '- - - - - - - - -\n'
-                                           f'当前驾驶状态: {self.get_level()}\n'
-                                           '- - - - - - - - -\n'
-                                           f'异常驾驶行为: {self.get_adb_str(self.adb)}')
-        else:
-            self.res_content_label.setText('点击\"开始检测\"按钮启动')
+    def update_weight(self, adb):
+        self.lamda[adb] = min(self.lamda[adb] + 0.2, 1)
 
     def update_log(self):
-        self.log_text.append(f'{QDateTime.currentDateTime().toString("yyyy年MM月dd日 hh:mm:ss")}: {self.get_adb_str(self.adb)}')
+        self.log_text.append(f'{QDateTime.currentDateTime().toString("yyyy年MM月dd日 hh:mm:ss")}: {self.get_adb_str(self.adb_flag)}')
 
     def export_log(self):
         with open(os.path.join(self.logs_folder, 'real-time_detection_curve.pkl'), 'wb') as f:  # 保存绘图数据
-            pickle.dump((self.TIME, self.SCORE), f)
+            pickle.dump((self.TIME, self.score_data), f)
         with open(os.path.join(self.logs_folder, 'real-time_detection_logs.txt'), 'w', encoding='utf-8') as f:
             f.write(self.log_text.toPlainText())
 
     def update_plot(self):
         self.TIME.append(self.TIME[-1] + 1)
-        self.SCORE.append(self.score)
-        self.plot_widget.plot(self.TIME, self.SCORE, pen='b', symbol='o', symbolPen='b', symbolBrush='r')
+        self.score_data.append(self.__score)
+        self.plot_widget.plot(self.TIME, self.score_data, pen='b', symbol='o', symbolPen='b', symbolBrush='r', symbolSize=5)
 
     def init_adb(self):
         self.image_label.setFont(QFont('SimHei', 50))
@@ -286,10 +283,44 @@ class RealTime_Detector(QWidget):
         self.fps_label.clear()
 
         self.queue.queue.clear()
-        self.adb = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}
-        self.adb_frame_cnt = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}
-        self.score = 100
+        self.adb_flag = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}
+        self.__adb_frame_cnt = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}
+
+        for adb, timer in self.timers.items():
+            self.timers[adb].stop()
+            self.lamda[adb] = 0
+
+        self.__score = 100
         self.isAlarm = False
+
+    def set_text(self):
+        self.analyse_label.setText(f'闭眼: {self.adb_flag["eye_close"] + self.lamda["eye_close"]:.1f}\n\n'
+                                   f'打哈欠: {self.adb_flag["yawn"] + self.lamda["yawn"]:.1f}\n\n'
+                                   f'抽烟: {self.adb_flag["smoke"] + self.lamda["smoke"]:.1f}\n\n'
+                                   f'使用手机: {self.adb_flag["phone"] + self.lamda["phone"]:.1f}\n\n'
+                                   f'喝水: {self.adb_flag["drink"] + self.lamda["drink"]:.1f}\n\n'
+                                   f'驾驶行为评分: {self.__score:.1f}\n\n'
+                                   f'危险驾驶分级: {self.get_level()}\n\n')
+
+        if self.cap.isOpened():
+            self.res_content_label.setText('检测中...\n'
+                                           '- - - - - - - - -\n'
+                                           f'当前驾驶状态: {self.get_level()}\n'
+                                           '- - - - - - - - -\n'
+                                           f'异常驾驶行为: {self.get_adb_str(self.adb_flag)}')
+        else:
+            self.res_content_label.setText('点击\"开始检测\"按钮启动')
+
+    def get_level(self):
+        if 90 < self.__score <= 100:
+            level = '安全'
+        elif 75 < self.__score <= 90:
+            level = '轻度危险'
+        elif 60 < self.__score <= 75:
+            level = '中度危险'
+        else:
+            level = '严重危险'
+        return level
 
     def get_adb_str(self, adb):
         adb_classes = []
@@ -299,19 +330,6 @@ class RealTime_Detector(QWidget):
                adb_classes.append(adb_mapping[adb_cls])
         adb_str = ', '.join(adb_classes) if len(adb_classes) else '无'
         return adb_str
-
-    def get_level(self):
-        if self.score == 100:
-            level = '安全'
-        elif self.score > 90:
-            level = '较为安全'
-        elif self.score > 75:
-            level = '轻度危险'
-        elif self.score > 60:
-            level = '中度危险'
-        else:
-            level = '非常危险'
-        return level
 
     def end_detect(self):
         if self.start_detect_button.text() == '正在检测中':
@@ -326,9 +344,6 @@ class RealTime_Detector(QWidget):
             self.init_adb()
             self.set_text()
             self.start_detect_button.setText('开始检测')
-
-    def set_obj_font(self, obj):
-        obj.setFont(QFont("SimHei", 11))
 
     def switch_show_bbox(self):
         self.show_bbox = not self.show_bbox

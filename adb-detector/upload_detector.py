@@ -72,10 +72,10 @@ class Upload_Detector(QWidget):
         # page_1 图片检测页
         self.page_1 = QWidget()
         self.origin_src_label = QLabel('原图', self.page_1)
-        self.origin_src_label.setGeometry(10, 5, 600, 20)
+        self.origin_src_label.setGeometry(10, 5, 600, 30)
         self.set_obj_font(self.origin_src_label)
         self.file_path_label = QLabel('', self.page_1)
-        self.file_path_label.setGeometry(110, 5, 600, 20)
+        self.file_path_label.setGeometry(140, 5, 600, 20)
         self.file_path_label.setTextInteractionFlags(self.file_path_label.textInteractionFlags() | Qt.TextSelectableByMouse)
         self.file_path_label.setFont(QFont('Times New Roman', 10))
         self.image_label = QLabel(self.page_1)
@@ -85,10 +85,10 @@ class Upload_Detector(QWidget):
         # page_2 视频检测页
         self.page_2 = QWidget()
         self.origin_src_label_2 = QLabel('原视频', self.page_2)
-        self.origin_src_label_2.setGeometry(10, 5, 200, 20)
+        self.origin_src_label_2.setGeometry(10, 5, 200, 30)
         self.set_obj_font(self.origin_src_label_2)
         self.video_path_label = QLabel('', self.page_2)
-        self.video_path_label.setGeometry(110, 5, 600, 20)
+        self.video_path_label.setGeometry(140, 5, 600, 20)
         self.video_path_label.setTextInteractionFlags(self.video_path_label.textInteractionFlags() | Qt.TextSelectableByMouse)
         self.video_path_label.setFont(QFont('Times New Roman', 10))
 

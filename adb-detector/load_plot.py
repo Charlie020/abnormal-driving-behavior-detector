@@ -6,7 +6,7 @@ import pyqtgraph as pg  # pyqtgraph必须在PyQt5后面import
 
 
 class PlotWindow(QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, pkl_path, parent=None):
         super().__init__(parent)
         self.setGeometry(300, 300, 500, 350)
         self.setWindowTitle('Curve')
@@ -16,7 +16,8 @@ class PlotWindow(QMainWindow):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setLabel('left', 'Score')
         self.plot_widget.setLabel('bottom', 'Time (s)')
-        self.pkl_path = r'logs/real-time_detection_curve.pkl'
+
+        self.pkl_path = pkl_path
 
         layout = QVBoxLayout()
         layout.addWidget(self.plot_widget)
@@ -35,6 +36,8 @@ class PlotWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = PlotWindow()
+
+    window = PlotWindow(r'logs/real-time_detection_curve.pkl')
+
     window.show()
     sys.exit(app.exec_())
