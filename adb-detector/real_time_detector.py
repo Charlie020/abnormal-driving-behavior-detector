@@ -6,42 +6,49 @@ import pickle
 
 from PyQt5.QtCore import QTimer, Qt, QDateTime
 from PyQt5.QtGui import QFont, QImage, QPixmap
-from PyQt5.QtWidgets import QLabel, QPushButton, QFrame, QVBoxLayout, QWidget, QScrollArea, QTextEdit
+from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget, QScrollArea, QTextEdit, QMessageBox
 import pyqtgraph as pg  # pyqtgraph必须在PyQt5后面import
-from playsound import playsound
 
+from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel, BodyLabel
+from playsound import playsound
 from functools import partial
 from ultralytics import YOLO
 
 
 class RealTime_Detector(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent=parent)
+        self.setObjectName(text.replace(' ', '-'))
         # 初始化默认文件夹
         self.logs_folder = ''
         self.resource_folder = ''
         self.result_folder = ''
         self.init_sys()
 
+        # 标题区域
+        self.title_label = TitleLabel('实时检测', self)
+        self.title_label.setFont(QFont('SimHei', 20))
+        self.title_label.setGeometry(15, 5, 120, 50)
+
         # 摄像头检测区域
         self.update_frame_timer = QTimer(self)  # 更新图片的计时器
         self.update_log_timer = QTimer(self)   # 更新日志的计时器
         self.update_plot_timer = QTimer(self)  # 更新曲线的计时器
 
-        self.detect_area_label = QLabel('摄像头检测结果显示区域', self)
-        self.detect_area_label.setGeometry(5, 0, 200, 20)
+        self.detect_area_label = BodyLabel('摄像头检测结果显示区域', self)
+        self.detect_area_label.setGeometry(15, 50, 200, 20)
         self.detect_area_label.setFont(QFont("SimHei", 11))
 
         self.img_frame = QFrame(self)
         self.img_frame.setFrameShape(QFrame.Box)
-        self.img_frame.setGeometry(5, 30, 600, 500)
+        self.img_frame.setGeometry(15, 80, 620, 500)
 
-        self.image_label = QLabel(self.img_frame)
-        self.image_label.setGeometry(5, 5, 590, 490)
+        self.image_label = BodyLabel(self.img_frame)
+        self.image_label.setGeometry(5, 5, 610, 490)
         self.cap = cv2.VideoCapture(0)
         self.cap.release()
 
-        self.fps_label = QLabel(self.image_label)
+        self.fps_label = BodyLabel(self.image_label)
         self.fps_label.setGeometry(5, 5, 80, 20)
         self.fps_label.setStyleSheet('color: rgb(0, 255, 255); background-color: transparent')
         self.fps_label.setFont(QFont("SimHei", 11))
@@ -69,51 +76,51 @@ class RealTime_Detector(QWidget):
         self.queue = queue.Queue()  # 帧队列，存有单位时间（1s）内每一帧的异常行为
 
         # 实时检测结果分析
-        self.res_label = QLabel('实时检测结果分析', self)
-        self.res_label.setGeometry(625, 0, 150, 20)
+        self.res_label = BodyLabel('实时检测结果分析', self)
+        self.res_label.setGeometry(655, 50, 150, 20)
         self.res_label.setFont(QFont("SimHei", 11))
 
         self.res_frame = QFrame(self)
         self.res_frame.setFrameShape(QFrame.Box)
-        self.res_frame.setGeometry(625, 30, 200, 125)
+        self.res_frame.setGeometry(655, 80, 230, 125)
 
-        self.res_content_label = QLabel(self.res_frame)
-        self.res_content_label.setGeometry(10, 10, 180, 105)
+        self.res_content_label = BodyLabel(self.res_frame)
+        self.res_content_label.setGeometry(10, 10, 210, 105)
         self.res_content_label.setWordWrap(True)
         self.res_content_label.setFont(QFont('SimHei', 9))
         self.res_content_label.setTextInteractionFlags(self.res_content_label.textInteractionFlags() | Qt.TextSelectableByMouse)
 
         # 异常驾驶行为统计次数
-        self.cnt_label = QLabel('异常驾驶行为统计与分析', self)
-        self.cnt_label.setGeometry(625, 160, 200, 20)
+        self.cnt_label = BodyLabel('异常驾驶行为统计与分析', self)
+        self.cnt_label.setGeometry(655, 210, 230, 20)
         self.cnt_label.setFont(QFont("SimHei", 11))
 
-        self.analyse_label = QLabel(self)
+        self.analyse_label = BodyLabel(self)
         self.analyse_label.setFont(QFont("SimHei", 10))
         self.analyse_label.setWordWrap(True)
         self.analyse_label.setTextInteractionFlags(self.analyse_label.textInteractionFlags() | Qt.TextSelectableByMouse)
 
         self.cnt_frame = QFrame(self)
         self.cnt_frame.setFrameShape(QFrame.Box)
-        self.cnt_frame.setGeometry(625, 185, 200, 250)
+        self.cnt_frame.setGeometry(655, 235, 230, 250)
 
         cnt_frame_layout = QVBoxLayout()
         cnt_frame_layout.addWidget(self.analyse_label)
         self.cnt_frame.setLayout(cnt_frame_layout)
 
         # 按钮
-        self.start_detect_button = QPushButton('开始检测', self)
+        self.start_detect_button = PushButton('开始检测', self)
         self.start_detect_button.clicked.connect(self.start_detect)
-        self.start_detect_button.setFixedSize(100, 30)
+        self.start_detect_button.setFixedSize(120, 30)
         self.start_detect_button.setFont(QFont("SimHei", 11))
 
-        self.end_detect_button = QPushButton('结束', self)
+        self.end_detect_button = PushButton('结束', self)
         self.end_detect_button.clicked.connect(self.end_detect)
-        self.end_detect_button.setFixedSize(100, 30)
+        self.end_detect_button.setFixedSize(120, 30)
         self.end_detect_button.setFont(QFont("SimHei", 11))
 
         self.button_frame = QFrame(self)
-        self.button_frame.setGeometry(625, 440, 200, 90)
+        self.button_frame.setGeometry(655, 490, 230, 90)
         self.button_frame.setFrameShape(QFrame.Box)
         button_frame_layout = QVBoxLayout()
         button_frame_layout.addWidget(self.start_detect_button)
@@ -123,18 +130,14 @@ class RealTime_Detector(QWidget):
 
         # 功能按钮
         self.show_bbox = True
-        self.show_bbox_button = QPushButton(self)
-        self.show_bbox_button.setFont(QFont('Webdings'))
-        self.show_bbox_button.setText('r')
+        self.show_bbox_button = ToolButton(FluentIcon.VIEW, self)
         self.show_bbox_button.clicked.connect(self.switch_show_bbox)
-        self.show_bbox_button.setGeometry(550, 0, 25, 25)
+        self.show_bbox_button.setGeometry(580, 50, 25, 25)
         self.show_bbox_button.setToolTip('隐藏边界框')
 
-        self.export_log_button = QPushButton(self)
-        self.export_log_button.setFont(QFont('Webdings'))
-        self.export_log_button.setText('6')
+        self.export_log_button = ToolButton(FluentIcon.SAVE, self)
         self.export_log_button.clicked.connect(self.export_log)
-        self.export_log_button.setGeometry(580, 0, 25, 25)
+        self.export_log_button.setGeometry(610, 50, 25, 25)
         self.export_log_button.setToolTip('导出日志')
 
         # 将日志信息放置在滚动区域中
@@ -144,7 +147,7 @@ class RealTime_Detector(QWidget):
         self.log_text.setReadOnly(True)
 
         self.scroll_area = QScrollArea(self)
-        self.scroll_area.setGeometry(5, 540, 300, 110)
+        self.scroll_area.setGeometry(15, 590, 330, 110)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.log_text)
         self.scroll_area.setStyleSheet("background-color: transparent;")
@@ -153,14 +156,23 @@ class RealTime_Detector(QWidget):
         pg.setConfigOption('background', '#FFFFFF')
         pg.setConfigOption('foreground', 'k')
         self.plot_widget = pg.PlotWidget(self)
-        self.plot_widget.setGeometry(315, 540, 510, 110)
+        self.plot_widget.setGeometry(355, 590, 530, 110)
         self.plot_widget.setLabel('left', 'Score')
         self.plot_widget.setLabel('bottom', 'Time (s)')
         self.TIME = [0]
         self.score_data = [self.__score]
 
-        # 更新'异常驾驶行为统计与分析'与'实时检测结果分析'模块
+        # 预警模块
         self.isAlarm = False
+        self.isMsg = False
+
+        self.msg = QMessageBox()
+        self.msg.setWindowModality(Qt.NonModal)
+        self.msg.setWindowTitle('Warning!')
+        self.msg.setText('请留意当前驾驶状态，可能发生危险！')
+        self.msg.setStandardButtons(QMessageBox.Ok)
+
+        # 初始化'异常驾驶行为统计与分析'与'实时检测结果分析'模块
         self.init_adb()
         self.set_text()
 
@@ -245,7 +257,13 @@ class RealTime_Detector(QWidget):
         for adb, flag in self.adb_flag.items():
             self.__score -= (flag + self.lamda[adb]) * self.adb_weight[adb]
 
-        if self.__score <= 75 and self.isAlarm == False:
+        if 75 < self.__score <= 90 and self.isMsg == False:
+            self.msg.show()
+            self.isMsg = True
+        elif self.__score >= 90:
+            self.msg.hide()
+            self.isMsg = False
+        elif self.__score <= 75 and self.isAlarm == False:
             self.isAlarm = True
             alarm_thread = threading.Thread(target=self.alarm)
             alarm_thread.daemon = True
@@ -278,7 +296,7 @@ class RealTime_Detector(QWidget):
     def init_adb(self):
         self.image_label.setFont(QFont('SimHei', 50))
         self.image_label.setStyleSheet("color: #B0B0B0;")
-        self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
         self.image_label.setText('显示区域')
         self.fps_label.clear()
 
@@ -347,12 +365,12 @@ class RealTime_Detector(QWidget):
 
     def switch_show_bbox(self):
         self.show_bbox = not self.show_bbox
-        if self.show_bbox_button.text() == 'r':
-            self.show_bbox_button.setToolTip('显示边界框')
-            self.show_bbox_button.setText('a')
-        else:
+        if self.show_bbox:
             self.show_bbox_button.setToolTip('隐藏边界框')
-            self.show_bbox_button.setText('r')
+            self.show_bbox_button.setIcon(FluentIcon.VIEW)
+        else:
+            self.show_bbox_button.setToolTip('显示边界框')
+            self.show_bbox_button.setIcon(FluentIcon.HIDE)
 
     def init_sys(self):
         self.logs_folder = 'logs'

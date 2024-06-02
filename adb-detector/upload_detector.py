@@ -5,10 +5,11 @@ import numpy as np
 from PyQt5.QtCore import Qt, QUrl, pyqtSignal
 from PyQt5.QtGui import QFont, QImage, QPixmap
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtWidgets import QLabel, QFrame, QWidget, QTableWidget, QPushButton, QFileDialog, QTableWidgetItem, \
+from PyQt5.QtWidgets import QLabel, QFrame, QWidget, QTableWidget, QFileDialog, QTableWidgetItem, \
     QHeaderView, QAbstractItemView, QStackedWidget, QVBoxLayout
-from ultralytics import YOLO
+from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel
 
+from ultralytics import YOLO
 from video_surface import myVideoSurface
 
 
@@ -18,8 +19,10 @@ class Upload_Detector(QWidget):
     exporting_signal = pyqtSignal()
     exported_signal = pyqtSignal()
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent=parent)
+        self.setObjectName(text.replace(' ', '-'))
+
         self.path = ''
         self.folder_path = ''
         self.src_type = None
@@ -29,18 +32,23 @@ class Upload_Detector(QWidget):
         self.result_folder = ''
         self.init_sys()
 
+        # 标题区域
+        self.title_label = TitleLabel('图片/视频检测', self)
+        self.title_label.setFont(QFont('SimHei', 20))
+        self.title_label.setGeometry(15, 5, 200, 50)
+
         # 选择图片
-        self.file_open_button = QPushButton('选择图片', self)
-        self.file_open_button.setGeometry(705, 5, 100, 30)
+        self.file_open_button = PushButton(FluentIcon.PHOTO, '选择图片', self)
+        self.file_open_button.setGeometry(705, 75, 130, 40)
         self.file_open_button.clicked.connect(self.open_file)
 
         # 文件浏览器
-        self.folder_open_button = QPushButton('选择文件夹', self)
-        self.folder_open_button.setGeometry(705, 70, 100, 30)
+        self.folder_open_button = PushButton(FluentIcon.FOLDER, '选择文件夹', self)
+        self.folder_open_button.setGeometry(705, 140, 130, 40)
         self.folder_open_button.clicked.connect(self.open_folder)
 
         self.file_table = QTableWidget(self)
-        self.file_table.setGeometry(680, 105, 150, 300)
+        self.file_table.setGeometry(705, 185, 180, 300)
         self.file_table.setColumnCount(1)
         self.file_table.verticalHeader().setMaximumWidth(50)
         self.file_table.setHorizontalHeaderLabels(['文件名'])
@@ -50,13 +58,17 @@ class Upload_Detector(QWidget):
         self.file_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         # 选择视频
-        self.video_open_button = QPushButton('选择视频', self)
-        self.video_open_button.setGeometry(705, 440, 100, 30)
+        self.video_open_button = PushButton(FluentIcon.VIDEO, '选择视频', self)
+        self.video_open_button.setGeometry(705, 510, 130, 40)
         self.video_open_button.clicked.connect(self.open_video)
 
         # 展示页
+        self.detect_area_label = QLabel('检测结果显示区域', self)
+        self.detect_area_label.setGeometry(15, 50, 200, 20)
+        self.detect_area_label.setFont(QFont("SimHei", 11))
+
         self.res_stack = QStackedWidget(self)
-        self.res_stack.setGeometry(5, 5, 660, 645)
+        self.res_stack.setGeometry(15, 75, 660, 625)
         self.res_stack.setFrameShape(QFrame.Box)
 
         # page_0 默认页
@@ -108,21 +120,19 @@ class Upload_Detector(QWidget):
         self.res_stack.addWidget(self.page_2)
 
         # 视频功能按钮
-        self.restart_button = QPushButton(self)
-        self.restart_button.setGeometry(720, 475, 30, 30)
-        self.restart_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/restart.jpg);')
-        self.restart_button.clicked.connect(self.restart_video)
-        self.restart_button.setEnabled(False)
+        self.skip_back_button = ToolButton(FluentIcon.SKIP_BACK, self)
+        self.skip_back_button.setGeometry(725, 555, 40, 40)
+        self.skip_back_button.clicked.connect(self.skip_back_video)
+        self.skip_back_button.setEnabled(False)
 
-        self.pause_button = QPushButton(self)
-        self.pause_button.setGeometry(760, 475, 30, 30)
-        self.pause_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/pause.jpg);')
+        self.pause_button = ToolButton(FluentIcon.PAUSE, self)
+        self.pause_button.setGeometry(770, 555, 40, 40)
         self.pause_button.clicked.connect(self.pause_video)
         self.pause_button.setEnabled(False)
 
         # 检测按钮
-        self.start_detect_button = QPushButton('开始检测', self)
-        self.start_detect_button.setGeometry(705, 540, 100, 50)
+        self.start_detect_button = PushButton('开始检测', self)
+        self.start_detect_button.setGeometry(740, 630, 100, 50)
         self.start_detect_button.clicked.connect(self.detect)
 
         # 模型
@@ -135,19 +145,16 @@ class Upload_Detector(QWidget):
         self.pause = False
 
         # 导出按钮
-        self.export_file_button = QPushButton(self)
-        self.export_file_button.setGeometry(807, 10, 20, 20)
-        self.export_file_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/export.jpg);')
+        self.export_file_button = ToolButton(FluentIcon.SAVE, self)
+        self.export_file_button.setGeometry(845, 75, 40, 40)
         self.export_file_button.clicked.connect(self.export_file)
 
-        self.export_folder_button = QPushButton(self)
-        self.export_folder_button.setGeometry(807, 75, 20, 20)
-        self.export_folder_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/export.jpg);')
+        self.export_folder_button = ToolButton(FluentIcon.SAVE, self)
+        self.export_folder_button.setGeometry(845, 140, 40, 40)
         self.export_folder_button.clicked.connect(self.export_folder)
 
-        self.export_video_button = QPushButton(self)
-        self.export_video_button.setGeometry(807, 445, 20, 20)
-        self.export_video_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/export.jpg);')
+        self.export_video_button = ToolButton(FluentIcon.SAVE, self)
+        self.export_video_button.setGeometry(845, 510, 40, 40)
         self.export_video_button.clicked.connect(self.export_video)
 
     def open_file(self):
@@ -224,24 +231,30 @@ class Upload_Detector(QWidget):
 
     def update_frame(self, img):
         pixmap = QPixmap.fromImage(img)
-        if self.show_bbox:
-            # QPixmap to opencv
-            qimage = pixmap.toImage()
-            shape = (qimage.height(), qimage.bytesPerLine() * 8 // qimage.depth())
-            shape += (4,)
-            ptr = qimage.bits()
-            ptr.setsize(qimage.byteCount())
-            cvimg = np.array(ptr, dtype=np.uint8).reshape(shape)
-            cvimg = cvimg[..., :3]
 
+        # QPixmap to opencv
+        qimage = pixmap.toImage()
+        shape = (qimage.height(), qimage.bytesPerLine() * 8 // qimage.depth())
+        shape += (4,)
+        ptr = qimage.bits()
+        ptr.setsize(qimage.byteCount())
+        cvimg = np.array(ptr, dtype=np.uint8).reshape(shape)
+        cvimg = cvimg[..., :3]
+        cvimg = cv2.cvtColor(cvimg, cv2.COLOR_BGR2RGB)
+
+        if self.show_bbox:
             # predict
-            result = self.model.predict(source=cv2.cvtColor(cvimg, cv2.COLOR_BGR2RGB))
+            result = self.model.predict(source=cvimg)
             annotated_frame = result[0].plot()
 
             # opencv to QPixmap
             h, w, ch = annotated_frame.shape
             bytes_per_line = ch * w
             pixmap = QPixmap.fromImage(QImage(annotated_frame.data, w, h, bytes_per_line, QImage.Format_RGB888))
+        else:
+            h, w, ch = cvimg.shape
+            bytes_per_line = ch * w
+            pixmap = QPixmap.fromImage(QImage(cvimg.data, w, h, bytes_per_line, QImage.Format_RGB888))
 
         scaled_pixmap = pixmap.scaled(self.video_frame_label.size(), Qt.KeepAspectRatio)
         self.video_frame_label.setPixmap(scaled_pixmap)
@@ -261,21 +274,21 @@ class Upload_Detector(QWidget):
             self.video_player.stop()
             self.video_player.setMedia(QMediaContent())
         self.pause_button.setEnabled(flag)
-        self.pause_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/pause.jpg);')
-        self.restart_button.setEnabled(flag)
+        self.pause_button.setIcon(FluentIcon.PAUSE)
+        self.skip_back_button.setEnabled(flag)
 
-    def restart_video(self):
-        self.render_video(self.path, position=0)
+    def skip_back_video(self):
+        self.render_video(self.path, position=max(0, self.position - 10000))
 
     def pause_video(self):
         if self.pause is False:
             self.pause = True
             self.video_player.pause()
-            self.pause_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/start.jpg);')
+            self.pause_button.setIcon(FluentIcon.PLAY)
         else:
             self.pause = False
             self.video_player.play()
-            self.pause_button.setStyleSheet(f'border-image:url({self.resource_folder}/button/pause.jpg);')
+            self.pause_button.setIcon(FluentIcon.PAUSE)
 
     def export_file(self):
         if self.src_type == 'pic':
