@@ -6,10 +6,10 @@ import pickle
 
 from PyQt5.QtCore import QTimer, Qt, QDateTime
 from PyQt5.QtGui import QFont, QImage, QPixmap
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget, QScrollArea, QTextEdit, QMessageBox
+from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget, QMessageBox
 import pyqtgraph as pg  # pyqtgraph必须在PyQt5后面import
+from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel, BodyLabel, TextEdit
 
-from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel, BodyLabel
 from playsound import playsound
 from functools import partial
 from ultralytics import YOLO
@@ -28,7 +28,7 @@ class RealTime_Detector(QWidget):
         # 标题区域
         self.title_label = TitleLabel('实时检测', self)
         self.title_label.setFont(QFont('SimHei', 20))
-        self.title_label.setGeometry(15, 5, 120, 50)
+        self.title_label.setGeometry(15, 5, 150, 50)
 
         # 摄像头检测区域
         self.update_frame_timer = QTimer(self)  # 更新图片的计时器
@@ -36,12 +36,12 @@ class RealTime_Detector(QWidget):
         self.update_plot_timer = QTimer(self)  # 更新曲线的计时器
 
         self.detect_area_label = BodyLabel('摄像头检测结果显示区域', self)
-        self.detect_area_label.setGeometry(15, 50, 200, 20)
+        self.detect_area_label.setGeometry(15, 70, 200, 20)
         self.detect_area_label.setFont(QFont("SimHei", 11))
 
         self.img_frame = QFrame(self)
         self.img_frame.setFrameShape(QFrame.Box)
-        self.img_frame.setGeometry(15, 80, 620, 500)
+        self.img_frame.setGeometry(15, 100, 620, 500)
 
         self.image_label = BodyLabel(self.img_frame)
         self.image_label.setGeometry(5, 5, 610, 490)
@@ -77,12 +77,12 @@ class RealTime_Detector(QWidget):
 
         # 实时检测结果分析
         self.res_label = BodyLabel('实时检测结果分析', self)
-        self.res_label.setGeometry(655, 50, 150, 20)
+        self.res_label.setGeometry(655, 70, 150, 20)
         self.res_label.setFont(QFont("SimHei", 11))
 
         self.res_frame = QFrame(self)
         self.res_frame.setFrameShape(QFrame.Box)
-        self.res_frame.setGeometry(655, 80, 230, 125)
+        self.res_frame.setGeometry(655, 100, 230, 125)
 
         self.res_content_label = BodyLabel(self.res_frame)
         self.res_content_label.setGeometry(10, 10, 210, 105)
@@ -92,7 +92,7 @@ class RealTime_Detector(QWidget):
 
         # 异常驾驶行为统计次数
         self.cnt_label = BodyLabel('异常驾驶行为统计与分析', self)
-        self.cnt_label.setGeometry(655, 210, 230, 20)
+        self.cnt_label.setGeometry(655, 230, 230, 20)
         self.cnt_label.setFont(QFont("SimHei", 11))
 
         self.analyse_label = BodyLabel(self)
@@ -102,7 +102,7 @@ class RealTime_Detector(QWidget):
 
         self.cnt_frame = QFrame(self)
         self.cnt_frame.setFrameShape(QFrame.Box)
-        self.cnt_frame.setGeometry(655, 235, 230, 250)
+        self.cnt_frame.setGeometry(655, 255, 230, 250)
 
         cnt_frame_layout = QVBoxLayout()
         cnt_frame_layout.addWidget(self.analyse_label)
@@ -120,7 +120,7 @@ class RealTime_Detector(QWidget):
         self.end_detect_button.setFont(QFont("SimHei", 11))
 
         self.button_frame = QFrame(self)
-        self.button_frame.setGeometry(655, 490, 230, 90)
+        self.button_frame.setGeometry(655, 510, 230, 90)
         self.button_frame.setFrameShape(QFrame.Box)
         button_frame_layout = QVBoxLayout()
         button_frame_layout.addWidget(self.start_detect_button)
@@ -132,31 +132,26 @@ class RealTime_Detector(QWidget):
         self.show_bbox = True
         self.show_bbox_button = ToolButton(FluentIcon.VIEW, self)
         self.show_bbox_button.clicked.connect(self.switch_show_bbox)
-        self.show_bbox_button.setGeometry(580, 50, 25, 25)
+        self.show_bbox_button.setGeometry(580, 70, 25, 25)
         self.show_bbox_button.setToolTip('隐藏边界框')
 
         self.export_log_button = ToolButton(FluentIcon.SAVE, self)
         self.export_log_button.clicked.connect(self.export_log)
-        self.export_log_button.setGeometry(610, 50, 25, 25)
+        self.export_log_button.setGeometry(610, 70, 25, 25)
         self.export_log_button.setToolTip('导出日志')
 
-        # 将日志信息放置在滚动区域中
-        self.log_text = QTextEdit()
+        # 日志信息
+        self.log_text = TextEdit(self)
+        self.log_text.setGeometry(15, 610, 330, 110)
         self.log_text.setPlainText('日志：')
         self.log_text.setFont(QFont('KaiTi', 8))
         self.log_text.setReadOnly(True)
-
-        self.scroll_area = QScrollArea(self)
-        self.scroll_area.setGeometry(15, 590, 330, 110)
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setWidget(self.log_text)
-        self.scroll_area.setStyleSheet("background-color: transparent;")
 
         # 实时曲线
         pg.setConfigOption('background', '#FFFFFF')
         pg.setConfigOption('foreground', 'k')
         self.plot_widget = pg.PlotWidget(self)
-        self.plot_widget.setGeometry(355, 590, 530, 110)
+        self.plot_widget.setGeometry(355, 610, 530, 110)
         self.plot_widget.setLabel('left', 'Score')
         self.plot_widget.setLabel('bottom', 'Time (s)')
         self.TIME = [0]
@@ -272,7 +267,7 @@ class RealTime_Detector(QWidget):
         self.set_text()
 
     def alarm(self):
-        for _ in range(5):
+        for _ in range(3):
             playsound(f'{self.resource_folder}/audio/alarm_80.mp3')
         self.isAlarm = False
 

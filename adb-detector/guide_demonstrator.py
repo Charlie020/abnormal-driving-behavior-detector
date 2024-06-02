@@ -1,7 +1,8 @@
 import cv2
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap, QFont
-from PyQt5.QtWidgets import QWidget, QStackedWidget, QPushButton, QLabel, QVBoxLayout, QFrame
-from qfluentwidgets import TitleLabel, ToolButton, FluentIcon
+from PyQt5.QtWidgets import QWidget, QStackedWidget, QLabel, QVBoxLayout, QFrame
+from qfluentwidgets import TitleLabel, PipsPager, PipsScrollButtonDisplayMode
 
 
 class Guide_Demonstrator(QWidget):
@@ -17,7 +18,7 @@ class Guide_Demonstrator(QWidget):
         # 展示页面
         self.img_num = 2
         self.stackedWidget = QStackedWidget(self)
-        self.stackedWidget.setGeometry(15, 50, 830, 600)
+        self.stackedWidget.setGeometry(80, 60, 738, 610)
         self.stackedWidget.setFrameShape(QFrame.Box)
 
         # 图片、视频检测页面指南
@@ -39,13 +40,14 @@ class Guide_Demonstrator(QWidget):
         self.stackedWidget.addWidget(self.page_1)
 
         # 跳转按钮
-        self.jump_left_button = ToolButton(FluentIcon.RETURN, self)
-        self.jump_left_button.setGeometry(400, 660, 40, 40)
-        self.jump_left_button.clicked.connect(self.jump_left)
-
-        self.jump_right_button = ToolButton(FluentIcon.RIGHT_ARROW, self)
-        self.jump_right_button.setGeometry(450, 660, 40, 40)
-        self.jump_right_button.clicked.connect(self.jump_right)
+        self.pager = PipsPager(Qt.Horizontal, self)
+        self.pager.setGeometry(400, 690, 80, 30)
+        self.pager.setPageNumber(self.img_num)
+        self.pager.setVisibleNumber(self.img_num)
+        self.pager.setNextButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
+        self.pager.setPreviousButtonDisplayMode(PipsScrollButtonDisplayMode.ALWAYS)
+        self.pager.setCurrentIndex(0)
+        self.pager.currentIndexChanged.connect(lambda index: self.stackedWidget.setCurrentIndex(index))
 
         self.stackedWidget.setCurrentIndex(0)
 
