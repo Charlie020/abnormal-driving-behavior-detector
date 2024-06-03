@@ -37,7 +37,7 @@ class PlotWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    window = PlotWindow(r'logs/real-time_detection_curve.pkl')
+    window = PlotWindow(r'../logs/real-time_detection_curve.pkl')
 
     window.show()
     sys.exit(app.exec_())

@@ -1,34 +1,15 @@
 import sys
 
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QFrame
-from qfluentwidgets import NavigationItemPosition, FluentWindow, SubtitleLabel, setFont, SplashScreen
-from qfluentwidgets import FluentIcon
+from PyQt5.QtWidgets import QApplication
+from qfluentwidgets import NavigationItemPosition, FluentWindow, SplashScreen, FluentIcon
 
+from home import Home
 from guide_demonstrator import Guide_Demonstrator
 from upload_detector import Upload_Detector
 from real_time_detector import RealTime_Detector
-
-
-# YOLOv8权重路径
-def get_yolo_weight():
-    return r'resource/model_weight/best.pt'
-
-
-class Widget(QFrame):
-
-    def __init__(self, text: str, parent=None):
-        super().__init__(parent=parent)
-        self.label = SubtitleLabel(text, self)
-        self.hBoxLayout = QHBoxLayout(self)
-
-        setFont(self.label, 24)
-        self.label.setAlignment(Qt.AlignCenter)
-        self.hBoxLayout.addWidget(self.label, 1, Qt.AlignCenter)
-
-        # 必须给子界面设置全局唯一的对象名
-        self.setObjectName(text.replace(' ', '-'))
+from settings import Settings
 
 
 class MainWindow(FluentWindow):
@@ -43,11 +24,13 @@ class MainWindow(FluentWindow):
         self.show()
 
         # 创建子控件
-        self.home_interface = Widget('主页', self)
+        self.home_interface = Home('主页', self)
         self.guide_interface = Guide_Demonstrator('操作指南', self)
-        self.img_video_interface = Upload_Detector('图片/视频检测', self)
+        self.upload_interface = Upload_Detector('图片/视频检测', self)
         self.realtime_interface = RealTime_Detector('实时检测', self)
-        self.setting_interface = Widget('设置', self)
+        self.setting_interface = Settings('设置', self)
+
+        # 创建导航页
         self.init_navigation()
 
         # 启动页隐藏
@@ -55,9 +38,14 @@ class MainWindow(FluentWindow):
 
     def init_navigation(self):
         self.addSubInterface(self.home_interface, FluentIcon.HOME, '主页')
+        self.home_interface.switch_to_guide_signal.connect(self.switch_to_guide_interface)
+        self.home_interface.switch_to_upload_signal.connect(self.switch_to_upload_interface)
+        self.home_interface.switch_to_realtime_signal.connect(self.switch_to_realtime_interface)
+        self.home_interface.switch_to_setting_signal.connect(self.switch_to_setting_interface)
+
         self.navigationInterface.addSeparator()
         self.addSubInterface(self.guide_interface, FluentIcon.BOOK_SHELF, '操作指南')
-        self.addSubInterface(self.img_video_interface, FluentIcon.PHOTO, '图片/视频检测')
+        self.addSubInterface(self.upload_interface, FluentIcon.PHOTO, '图片/视频检测')
         self.addSubInterface(self.realtime_interface, FluentIcon.CAMERA, '实时检测')
         self.addSubInterface(self.setting_interface, FluentIcon.SETTING, '设置', NavigationItemPosition.BOTTOM)
 
@@ -66,6 +54,18 @@ class MainWindow(FluentWindow):
         self.setMinimumSize(950, 780)
         self.setWindowIcon(QIcon(':/qfluentwidgets/images/logo.png'))
         self.setWindowTitle('驾驶员异常驾驶行为识别系统')
+
+    def switch_to_guide_interface(self):
+        self.switchTo(self.guide_interface)
+
+    def switch_to_upload_interface(self):
+        self.switchTo(self.upload_interface)
+
+    def switch_to_realtime_interface(self):
+        self.switchTo(self.realtime_interface)
+
+    def switch_to_setting_interface(self):
+        self.switchTo(self.setting_interface)
 
 
 if __name__ == '__main__':

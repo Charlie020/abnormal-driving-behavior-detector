@@ -1,5 +1,7 @@
 import os
 import threading
+from pathlib import Path
+
 import cv2
 import queue
 import pickle
@@ -8,8 +10,10 @@ from PyQt5.QtCore import QTimer, Qt, QDateTime
 from PyQt5.QtGui import QFont, QImage, QPixmap
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget, QMessageBox
 import pyqtgraph as pg  # pyqtgraph必须在PyQt5后面import
-from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel, BodyLabel, TextEdit
+from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel, BodyLabel, TextEdit, qconfig, InfoBar, \
+    InfoBarPosition
 
+from utils.config import MyConfig
 from playsound import playsound
 from functools import partial
 from ultralytics import YOLO
@@ -19,10 +23,11 @@ class RealTime_Detector(QWidget):
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
         self.setObjectName(text.replace(' ', '-'))
+
         # 初始化默认文件夹
         self.logs_folder = ''
         self.resource_folder = ''
-        self.result_folder = ''
+        self.model_weight_path = ''
         self.init_sys()
 
         # 标题区域
@@ -54,8 +59,7 @@ class RealTime_Detector(QWidget):
         self.fps_label.setFont(QFont("SimHei", 11))
 
         # 模型
-        from main import get_yolo_weight
-        self.model = YOLO(get_yolo_weight())
+        self.model = YOLO(self.model_weight_path)
 
         # 得分
         self.classes = ['eye_open', 'eye_close', 'mouth', 'yawn', 'face', 'smoke', 'phone', 'drink']
@@ -72,7 +76,7 @@ class RealTime_Detector(QWidget):
         self.__score = 100
 
         self.__adb_frame_cnt = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}  # 单位时间内异常动作帧数统计
-        self.__frame_threshold = 0.6  # 被判定为异常行为的帧数所占正常帧数的比例阈值
+        self.__frame_threshold = 0.4  # 被判定为异常行为的帧数所占正常帧数的比例阈值
         self.queue = queue.Queue()  # 帧队列，存有单位时间（1s）内每一帧的异常行为
 
         # 实时检测结果分析
@@ -368,15 +372,17 @@ class RealTime_Detector(QWidget):
             self.show_bbox_button.setIcon(FluentIcon.HIDE)
 
     def init_sys(self):
-        self.logs_folder = 'logs'
+        cfg = MyConfig()
+        qconfig.load('config.json', cfg)
+
+        self.logs_folder = cfg.get(cfg.logs_folder)
         if not os.path.exists(self.logs_folder):
             os.makedirs(self.logs_folder)
 
-        self.resource_folder = 'resource'
+        self.resource_folder = cfg.get(cfg.resource_folder)
         if not os.path.exists(self.resource_folder):
             os.makedirs(self.resource_folder)
 
-        self.result_folder = 'result'
-        if not os.path.exists(self.result_folder):
-            os.makedirs(self.result_folder)
+        self.model_weight_path = cfg.get(cfg.model_weight_path)
+        assert Path(self.model_weight_path).exists(), f'Error: The model weight file "{self.model_weight_path}" does not exist.'
 

@@ -1,0 +1,14 @@
+{
+    "directory": {
+        "logs_folder": "logs",
+        "resource_folder": "resource",
+        "result_folder": "result"
+    },
+    "file": {
+        "model_weight_path": "resource/model_weight/best.pt"
+    },
+    "QFluentWidgets": {
+        "ThemeColor": "#ff009faa",
+        "ThemeMode": "Light"
+    }
+}

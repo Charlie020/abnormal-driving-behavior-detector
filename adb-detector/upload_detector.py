@@ -1,16 +1,20 @@
 import os
+from pathlib import Path
+
 import cv2
 import numpy as np
 
 from PyQt5.QtCore import Qt, QUrl, pyqtSignal
 from PyQt5.QtGui import QFont, QImage, QPixmap
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtWidgets import QFrame, QWidget, QTableWidget, QFileDialog, QTableWidgetItem, \
-    QHeaderView, QAbstractItemView, QStackedWidget, QVBoxLayout
-from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel, BodyLabel, TableWidget, ProgressBar, TextEdit
+from PyQt5.QtWidgets import QFrame, QWidget, QFileDialog, QTableWidgetItem, QHeaderView, QAbstractItemView, \
+                            QStackedWidget, QVBoxLayout
+from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel, BodyLabel, TableWidget, ProgressBar, \
+    TextEdit, qconfig
 
+from utils.config import MyConfig
 from ultralytics import YOLO
-from video_surface import myVideoSurface
+from utils.video_surface import myVideoSurface
 
 
 class Upload_Detector(QWidget):
@@ -23,14 +27,14 @@ class Upload_Detector(QWidget):
         super().__init__(parent=parent)
         self.setObjectName(text.replace(' ', '-'))
 
+        # 初始化默认文件夹
+        self.result_folder = ''
+        self.model_weight_path = ''
+        self.init_sys()
+
         self.path = ''
         self.folder_path = ''
         self.src_type = None
-
-        # 初始化默认文件夹
-        self.resource_folder = ''
-        self.result_folder = ''
-        self.init_sys()
 
         # 标题区域
         self.title_label = TitleLabel('图片/视频检测', self)
@@ -147,8 +151,7 @@ class Upload_Detector(QWidget):
         self.start_detect_button.clicked.connect(self.detect)
 
         # 模型
-        from main import get_yolo_weight
-        self.model = YOLO(get_yolo_weight())
+        self.model = YOLO(self.model_weight_path)
 
         self.res_stack.setCurrentIndex(0)
         self.show_bbox = False
@@ -391,11 +394,13 @@ class Upload_Detector(QWidget):
         obj.setFont(QFont('SimHei', 16))
 
     def init_sys(self):
-        self.resource_folder = 'resource'
-        if not os.path.exists(self.resource_folder):
-            os.makedirs(self.resource_folder)
+        cfg = MyConfig()
+        qconfig.load('config.json', cfg)
 
-        self.result_folder = 'result'
+        self.result_folder = cfg.get(cfg.result_folder)
         if not os.path.exists(self.result_folder):
             os.makedirs(self.result_folder)
+
+        self.model_weight_path = cfg.get(cfg.model_weight_path)
+        assert Path(self.model_weight_path).exists(), f'Error: The model weight file "{self.model_weight_path}" does not exist.'
 
