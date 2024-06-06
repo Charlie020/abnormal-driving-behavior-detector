@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget, QStackedWidget, QLabel, QVBoxLayout, QFrame
 from qfluentwidgets import TitleLabel, PipsPager, PipsScrollButtonDisplayMode
 
 
-class Guide_Demonstrator(QWidget):
+class Guide_Demonstration(QWidget):
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
         self.setObjectName(text.replace(' ', '-'))

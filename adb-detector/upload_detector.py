@@ -1,10 +1,9 @@
 import os
-from pathlib import Path
-
 import cv2
 import numpy as np
+from pathlib import Path
 
-from PyQt5.QtCore import Qt, QUrl, pyqtSignal
+from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QFont, QImage, QPixmap
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QFrame, QWidget, QFileDialog, QTableWidgetItem, QHeaderView, QAbstractItemView, \
@@ -18,10 +17,6 @@ from utils.video_surface import myVideoSurface
 
 
 class Upload_Detector(QWidget):
-
-    # 导出功能的状态信号, 用于更新主窗口状态栏
-    exporting_signal = pyqtSignal()
-    exported_signal = pyqtSignal()
 
     def __init__(self, text: str, parent=None):
         super().__init__(parent=parent)
@@ -90,7 +85,7 @@ class Upload_Detector(QWidget):
         self.page_1 = QWidget()
         self.origin_src_label = BodyLabel('原图', self.page_1)
         self.origin_src_label.setGeometry(10, 5, 200, 25)
-        self.set_obj_font(self.origin_src_label)
+        self.origin_src_label.setFont(QFont('SimHei', 16))
         self.file_path_label = TextEdit(self.page_1)
         self.file_path_label.setReadOnly(True)
         self.file_path_label.setGeometry(140, 5, 500, 25)
@@ -104,7 +99,7 @@ class Upload_Detector(QWidget):
         self.page_2 = QWidget()
         self.origin_src_label_2 = BodyLabel('原视频', self.page_2)
         self.origin_src_label_2.setGeometry(10, 5, 200, 25)
-        self.set_obj_font(self.origin_src_label_2)
+        self.origin_src_label_2.setFont(QFont('SimHei', 16))
         self.video_path_label = TextEdit(self.page_2)
         self.video_path_label.setReadOnly(True)
         self.video_path_label.setGeometry(140, 5, 500, 25)
@@ -368,15 +363,11 @@ class Upload_Detector(QWidget):
             frame_width = int(cap.get(3))
             frame_height = int(cap.get(4))
             if self.path.lower().endswith('.mp4'):
-                print(1)
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
                 out = cv2.VideoWriter(os.path.join(res_folder, os.path.basename(self.path).replace('.mp4', '_annotate.mp4')), fourcc, 20.0, (frame_width, frame_height))
-                print(2)
             elif self.path.lower().endswith('.avi'):
-                print(3)
                 fourcc = cv2.VideoWriter_fourcc(*'XVID')
                 out = cv2.VideoWriter(os.path.join(res_folder, os.path.basename(self.path).replace('.avi', '_annotate.avi')), fourcc, 20.0, (frame_width, frame_height))
-                print(4)
 
             while cap.isOpened():
                 success, frame = cap.read()
@@ -389,9 +380,6 @@ class Upload_Detector(QWidget):
             cap.release()
 
             self.exported_signal.emit()
-
-    def set_obj_font(self, obj):
-        obj.setFont(QFont('SimHei', 16))
 
     def init_sys(self):
         cfg = MyConfig()

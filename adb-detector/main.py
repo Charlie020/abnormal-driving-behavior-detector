@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QApplication
 from qfluentwidgets import NavigationItemPosition, FluentWindow, SplashScreen, FluentIcon
 
 from home import Home
-from guide_demonstrator import Guide_Demonstrator
+from guide_demonstration import Guide_Demonstration
 from upload_detector import Upload_Detector
 from real_time_detector import RealTime_Detector
 from settings import Settings
@@ -25,7 +25,7 @@ class MainWindow(FluentWindow):
 
         # 创建子控件
         self.home_interface = Home('主页', self)
-        self.guide_interface = Guide_Demonstrator('操作指南', self)
+        self.guide_interface = Guide_Demonstration('操作指南', self)
         self.upload_interface = Upload_Detector('图片/视频检测', self)
         self.realtime_interface = RealTime_Detector('实时检测', self)
         self.setting_interface = Settings('设置', self)
@@ -50,8 +50,8 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.setting_interface, FluentIcon.SETTING, '设置', NavigationItemPosition.BOTTOM)
 
     def init_window(self):
-        self.resize(950, 780)
-        self.setMinimumSize(950, 780)
+        self.resize(955, 780)
+        self.setMinimumSize(955, 780)
         self.setWindowIcon(QIcon(':/qfluentwidgets/images/logo.png'))
         self.setWindowTitle('驾驶员异常驾驶行为识别系统')
 

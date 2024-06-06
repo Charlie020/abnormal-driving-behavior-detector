@@ -10,8 +10,8 @@ from PyQt5.QtCore import QTimer, Qt, QDateTime
 from PyQt5.QtGui import QFont, QImage, QPixmap
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget, QMessageBox
 import pyqtgraph as pg  # pyqtgraph必须在PyQt5后面import
-from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel, BodyLabel, TextEdit, qconfig, InfoBar, \
-    InfoBarPosition
+from qfluentwidgets import PushButton, ToolButton, FluentIcon, TitleLabel, BodyLabel, TextEdit, qconfig, \
+    TransparentToolButton
 
 from utils.config import MyConfig
 from playsound import playsound
@@ -76,13 +76,22 @@ class RealTime_Detector(QWidget):
         self.__score = 100
 
         self.__adb_frame_cnt = {'eye_close': 0, 'yawn': 0, 'smoke': 0, 'phone': 0, 'drink': 0}  # 单位时间内异常动作帧数统计
-        self.__frame_threshold = 0.4  # 被判定为异常行为的帧数所占正常帧数的比例阈值
+        self.__frame_threshold = 0.3  # 被判定为异常行为的帧数所占正常帧数的比例阈值
         self.queue = queue.Queue()  # 帧队列，存有单位时间（1s）内每一帧的异常行为
 
         # 实时检测结果分析
         self.res_label = BodyLabel('实时检测结果分析', self)
         self.res_label.setGeometry(655, 70, 150, 20)
         self.res_label.setFont(QFont("SimHei", 11))
+
+        self.msg_flag = TransparentToolButton(FluentIcon.MESSAGE, self)
+        self.msg_flag.setGeometry(820, 65, 30, 30)
+        self.msg_flag.setStyleSheet("background-color: yellow;")
+        self.msg_flag.setEnabled(False)
+        self.alarm_flag = TransparentToolButton(FluentIcon.RINGER, self)
+        self.alarm_flag.setGeometry(855, 65, 30, 30)
+        self.alarm_flag.setStyleSheet("background-color: red;")
+        self.alarm_flag.setEnabled(False)
 
         self.res_frame = QFrame(self)
         self.res_frame.setFrameShape(QFrame.Box)
@@ -256,17 +265,24 @@ class RealTime_Detector(QWidget):
         for adb, flag in self.adb_flag.items():
             self.__score -= (flag + self.lamda[adb]) * self.adb_weight[adb]
 
-        if 75 < self.__score <= 90 and self.isMsg == False:
-            self.msg.show()
-            self.isMsg = True
-        elif self.__score >= 90:
+        # 弹窗
+        if self.__score <= 90:
+            if not self.isMsg:
+                self.msg.show()
+                self.isMsg = True
+                self.msg_flag.setStyleSheet("background-color: yellow;")
+        else:
             self.msg.hide()
             self.isMsg = False
-        elif self.__score <= 75 and self.isAlarm == False:
-            self.isAlarm = True
-            alarm_thread = threading.Thread(target=self.alarm)
-            alarm_thread.daemon = True
-            alarm_thread.start()
+            self.msg_flag.setStyleSheet("")
+        # 警报
+        if self.__score <= 75:
+            if not self.isAlarm:
+                self.isAlarm = True
+                alarm_thread = threading.Thread(target=self.alarm)
+                alarm_thread.daemon = True
+                self.alarm_flag.setStyleSheet("background-color: red;")
+                alarm_thread.start()
 
         self.set_text()
 
@@ -274,6 +290,7 @@ class RealTime_Detector(QWidget):
         for _ in range(3):
             playsound(f'{self.resource_folder}/audio/alarm_80.mp3')
         self.isAlarm = False
+        self.alarm_flag.setStyleSheet("")
 
     def update_weight(self, adb):
         self.lamda[adb] = min(self.lamda[adb] + 0.2, 1)
@@ -308,7 +325,11 @@ class RealTime_Detector(QWidget):
             self.lamda[adb] = 0
 
         self.__score = 100
+
+        self.isMsg = False
+        self.msg_flag.setStyleSheet("")
         self.isAlarm = False
+        self.alarm_flag.setStyleSheet("")
 
     def set_text(self):
         self.analyse_label.setText(f'闭眼: {self.adb_flag["eye_close"] + self.lamda["eye_close"]:.1f}\n\n'
